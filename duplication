@@ -71,7 +71,6 @@ S3REMOTE=s3+http://${DEST}      # S3 remote backup URL
 export_cfvars() {
     export CLOUDFILES_USERNAME
     export CLOUDFILES_APIKEY
-    export CLOUDFILES_AUTHURL
 }
 
 export_s3vars() {
@@ -105,7 +104,6 @@ clear_vars() {
     unset PASSPHRASE
     unset CLOUDFILES_USERNAME
     unset CLOUDFILES_APIKEY
-    unset CLOUDFILES_AUTHURL
     unset AWS_ACCESS_KEY_ID
     unset AWS_SECRET_ACCESS_KEY
 }
