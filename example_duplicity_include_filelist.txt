@@ -1,0 +1,9 @@
+# example --include-globbing-filelist
+# See the FILE SELECTION section of duplicity(1) for details
+/etc
+- /home/*/.electricsheep
+- /home/*/tmp*
+/home
+/root
+/srv
+/var/www
