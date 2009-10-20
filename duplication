@@ -5,9 +5,8 @@
 #   This script takes an argument for either remote storage service:  {cf|s3}
 #   and an argument for full or incremental backup:  {full|incremental}
 #
-#   This script uses a globbing filelist at /root/etc/duplicity_include_filelist.txt
-#   to configure what source directories/files are backed up see duplicity(1)
-#   for configuration details
+#   This script uses a globbing include filelist to configure what source
+#   directories/files are backed up see duplicity(1) for configuration details
 #
 #   duplicity: http://duplicity.nongnu.org/
 #
@@ -49,6 +48,7 @@ GPG_KEY=A123B456                # gpg key to encrypt and sign backups
 GPG_PASSPHRASE="5Up3R^53kR1t"   # gpg passphrase
 VOLSIZE=100                     # volume chunk size in MB (duplicity default is 25MB)
 CLEAN_TIME=60D                  # backups older than CLEAN_TIME (D=days) are removed
+INCLUDE=/root/etc/duplicity_include_filelist.txt  # include filelist path
 SOURCE=/                        # backup source location
 DEST=duplicity-$(hostname -s)   # destination container/bucket based on short hostname
 
@@ -84,7 +84,7 @@ run_duplicity() {
         ${GPG_OPTS} \
         --exclude-device-files \
         --volsize=${VOLSIZE} \
-        --include-globbing-filelist /root/etc/duplicity_include_filelist.txt \
+        --include-globbing-filelist ${INCLUDE} \
         --exclude=/** \
         ${SOURCE} ${REMOTE}
 }
