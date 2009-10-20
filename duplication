@@ -58,6 +58,13 @@ DEST=duplicity-$(hostname -s)   # destination container/bucket based on short ho
 CLOUDFILES_USERNAME=cloudfilesuser
 CLOUDFILES_APIKEY=cloudfilesapikey
 CFREMOTE=cf+http://${DEST}      # CF remote backup URL
+# Cloud Files private ServiceNet network configuration
+#   requires python-cloudfiles >=1.5.1
+#   uncomment this line only if you are a Rackspace/Slicehost client with
+#   ServiceNet connectivity.  Setting the RACKSPACE_SERVICENET environment
+#   variable (to anything) will munge the python-cloudfiles API storage_url
+#   to use the private ServiceNet front end to Cloud Files.
+#export RACKSPACE_SERVICENET=true
 
 #
 # S3 configuration
