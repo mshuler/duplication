@@ -1,0 +1,186 @@
+#!/bin/sh
+#
+# duplication is a single duplicity backup script for Cloud Files or S3
+#
+#   This script takes an argument for either remote storage service:  {cf|s3}
+#   and an argument for full or incremental backup:  {full|incremental}
+#
+#   This script uses a globbing filelist at /root/etc/duplicity_include_filelist.txt
+#   to configure what source directories/files are backed up see duplicity(1)
+#   for configuration details
+#
+#   duplicity: http://duplicity.nongnu.org/
+#
+# Version: 0.1
+#
+# License: MIT
+#
+# Copyright (c) 2009 Michael Shuler <michael@pbandjelly.org>
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+
+#
+# Common duplicity configuration:
+#
+#   Use of GnuPG encrypted backups is highly recommended, however, not required.
+#   Set to USE_GPG=false for unencrypted backups
+#
+USE_GPG=true                    # this really should be true..
+GPG_KEY=A123B456                # gpg key to encrypt and sign backups
+GPG_PASSPHRASE="5Up3R^53kR1t"   # gpg passphrase
+VOLSIZE=100                     # volume chunk size in MB (duplicity default is 25MB)
+CLEAN_TIME=60D                  # backups older than CLEAN_TIME (D=days) are removed
+SOURCE=/                        # backup source location
+DEST=duplicity-$(hostname -s)   # destination container/bucket based on short hostname
+
+#
+# Cloud Files configuration:
+#
+CLOUDFILES_USERNAME=cloudfilesuser
+CLOUDFILES_APIKEY=cloudfilesapikey
+CFREMOTE=cf+http://${DEST}      # CF remote backup URL
+
+#
+# S3 configuration
+#
+AWS_ACCESS_KEY_ID=amazonaccesskeyid
+AWS_SECRET_ACCESS_KEY=amazonsecretacceesskey
+S3REMOTE=s3+http://${DEST}      # S3 remote backup URL
+
+########################################################################
+
+export_cfvars() {
+    export CLOUDFILES_USERNAME
+    export CLOUDFILES_APIKEY
+    export CLOUDFILES_AUTHURL
+}
+
+export_s3vars() {
+    export AWS_ACCESS_KEY_ID
+    export AWS_SECRET_ACCESS_KEY
+}
+
+run_duplicity() {
+echo    duplicity \
+        ${BKUPTYPE} \
+        ${GPG_OPTS} \
+        --exclude-device-files \
+        --volsize=${VOLSIZE} \
+        --include-globbing-filelist /root/etc/duplicity_include_filelist.txt \
+        --exclude=/** \
+        ${SOURCE} ${REMOTE}
+}
+
+run_duplicity_cleanup() {
+echo    duplicity \
+        remove-older-than ${CLEAN_TIME} \
+        ${GPG_OPTS} \
+        ${REMOTE}
+echo    duplicity \
+        cleanup \
+        ${GPG_OPTS} \
+        ${REMOTE}
+}
+
+clear_vars() {
+    unset PASSPHRASE
+    unset CLOUDFILES_USERNAME
+    unset CLOUDFILES_APIKEY
+    unset CLOUDFILES_AUTHURL
+    unset AWS_ACCESS_KEY_ID
+    unset AWS_SECRET_ACCESS_KEY
+}
+
+do_backup() {
+    run_duplicity
+    if [ $? = 0 ]; then
+        run_duplicity_cleanup
+    else
+        echo "== Duplicity failed with exit code $? - not running cleanup =="
+    fi
+    clear_vars
+    echo "== Done =="
+}
+
+echo_usage() {
+    echo "
+        Usage: $0 {cf|s3} {full|incremental}
+        Example: $0 cf full
+    "
+    exit 1
+}
+
+##### Main
+
+if [ $# != 2 ]; then
+    echo_usage
+else
+    case "${USE_GPG}" in
+        true|1)
+            export GPG_OPTS="--encrypt-key=${GPG_KEY} --sign-key=${GPG_KEY}"
+            export PASSPHRASE="${GPG_PASSPHRASE}"
+            ;;
+        false|0)
+            export GPG_OPTS="--no-encryption"
+            ;;
+        *)
+            echo "== USE_GPG options are 'true' or 'false' - aborting =="
+            exit 1
+            ;;
+    esac
+fi
+
+case "$1" in
+    cf)
+        export REMOTE=${CFREMOTE}
+        case "$2" in
+            full|incremental)
+                export BKUPTYPE="$2"
+                echo "== Running Cloud Files ${BKUPTYPE} backup =="
+                export_cfvars
+                do_backup
+                ;;
+            *)
+                echo_usage
+                ;;
+        esac
+        ;;
+    s3)
+        export REMOTE=${S3REMOTE}
+        case "$2" in
+            full|incremental)
+                export BKUPTYPE="$2"
+                echo "== Running S3 ${BKUPTYPE} backup =="
+                export_s3vars
+                do_backup
+                ;;
+            *)
+                echo_usage
+                ;;
+        esac
+        ;;
+    *)
+        echo_usage
+        ;;
+esac
+
+exit 0
