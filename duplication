@@ -80,7 +80,7 @@ export_s3vars() {
 }
 
 run_duplicity() {
-echo    duplicity \
+    duplicity \
         ${BKUPTYPE} \
         ${GPG_OPTS} \
         --exclude-device-files \
@@ -91,11 +91,11 @@ echo    duplicity \
 }
 
 run_duplicity_cleanup() {
-echo    duplicity \
+    duplicity \
         remove-older-than ${CLEAN_TIME} \
         ${GPG_OPTS} \
         ${REMOTE}
-echo    duplicity \
+    duplicity \
         cleanup \
         ${GPG_OPTS} \
         ${REMOTE}
@@ -126,6 +126,7 @@ echo_usage() {
         Usage: $0 {cf|s3} {full|incremental}
         Example: $0 cf full
     "
+    clear_vars
     exit 1
 }
 
@@ -144,6 +145,7 @@ else
             ;;
         *)
             echo "== USE_GPG options are 'true' or 'false' - aborting =="
+            clear_vars
             exit 1
             ;;
     esac
